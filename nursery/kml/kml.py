@@ -53,3 +53,50 @@ def asKml(input_geom, altitudeMode=None, uid=''):
     kmlcache.kml_text = kml
     kmlcache.save()
     return kml
+
+
+def kml_errors(kmlstring):
+    from madrona.common import feedvalidator
+    from madrona.common.feedvalidator import compatibility
+    events = feedvalidator.validateString(kmlstring, firstOccurrenceOnly=1)['loggedEvents']
+
+    # Three levels of compatibility
+    # "A" is most basic level
+    # "AA" mimics online validator
+    # "AAA" is experimental; these rules WILL change or disappear in future versions
+    filterFunc = getattr(compatibility, "AA")
+    events = filterFunc(events)
+
+    # there are a few annoyances with feedvalidator; specifically it doesn't recognize
+    # KML ExtendedData element
+    # or our custom 'mm' namespance
+    # or our custom atom link relation
+    # or space-delimited Icon states
+    # so we ignore all related events
+    events = [x for x in events if not (
+                (isinstance(x,feedvalidator.logging.UndefinedElement)
+                    and x.params['element'] == u'ExtendedData') or
+                (isinstance(x,feedvalidator.logging.UnregisteredAtomLinkRel)
+                    and x.params['value'] == u'madrona.update_form') or
+                (isinstance(x,feedvalidator.logging.UnregisteredAtomLinkRel)
+                    and x.params['value'] == u'madrona.create_form') or
+                (isinstance(x,feedvalidator.logging.UnknownNamespace)
+                    and x.params['namespace'] == u'http://madrona.org') or
+                (isinstance(x,feedvalidator.logging.UnknownNamespace)
+                    and x.params['namespace'] == u'http://www.google.com/kml/ext/2.2') or
+                (isinstance(x,feedvalidator.logging.InvalidItemIconState)
+                    and x.params['element'] == u'state' and ' ' in x.params['value']) or
+                (isinstance(x,feedvalidator.logging.UnregisteredAtomLinkRel)
+                    and x.params['element'] == u'atom:link' and 'workspace' in x.params['value'])
+                )]
+
+    from madrona.common.feedvalidator.formatter.text_plain import Formatter
+    output = Formatter(events)
+
+    if output:
+        errors = []
+        for i in range(len(output)):
+            errors.append((events[i],events[i].params,output[i],kmlstring.splitlines()[events[i].params['backupline']]))
+        return errors
+    else:
+        return None

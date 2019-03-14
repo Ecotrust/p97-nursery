@@ -3,7 +3,7 @@ def asKml(input_geom, altitudeMode=None, uid=''):
     Performs three critical functions for creating suitable KML geometries:
      - simplifies the geoms (lines, polygons only)
      - forces left-hand rule orientation
-     - sets the altitudeMode shape 
+     - sets the altitudeMode shape
        (usually one of: absolute, clampToGround, relativeToGround)
     """
     if altitudeMode is None:
@@ -26,14 +26,14 @@ def asKml(input_geom, altitudeMode=None, uid=''):
         geom = latlon_geom.simplify(settings.KML_SIMPLIFY_TOLERANCE_DEGREES)
         # Gaurd against invalid geometries due to bad simplification
         # Keep reducing the tolerance til we get a good one
-        if geom.empty or not geom.valid: 
+        if geom.empty or not geom.valid:
             toler = settings.KML_SIMPLIFY_TOLERANCE_DEGREES
             maxruns = 20
             for i in range(maxruns):
                 toler = toler / 3.0
                 geom = latlon_geom.simplify(toler)
                 log.debug("%s ... Simplification failed ... tolerance=%s" % (key,toler))
-                if not geom.empty and geom.valid: 
+                if not geom.empty and geom.valid:
                     break
             if i == maxruns - 1:
                 geom = latlon_geom
@@ -83,7 +83,11 @@ def kml_errors(kmlstring):
                 (isinstance(x,feedvalidator.logging.UnknownNamespace)
                     and x.params['namespace'] == u'http://madrona.org') or
                 (isinstance(x,feedvalidator.logging.UnknownNamespace)
+                    and x.params['namespace'] == u'https://madrona.org') or
+                (isinstance(x,feedvalidator.logging.UnknownNamespace)
                     and x.params['namespace'] == u'http://www.google.com/kml/ext/2.2') or
+                (isinstance(x,feedvalidator.logging.InvalidItemIconState)
+                    and x.params['namespace'] == u'https://www.google.com/kml/ext/2.2') or
                 (isinstance(x,feedvalidator.logging.InvalidItemIconState)
                     and x.params['element'] == u'state' and ' ' in x.params['value']) or
                 (isinstance(x,feedvalidator.logging.UnregisteredAtomLinkRel)
